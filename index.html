@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartRoom — PMV 냉방 제어 시스템</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F4F6F9; --surface:#FFFFFF; --surface2:#F8FAFC;
+  --border:#E4E8EF; --border2:#D0D7E3;
+  --blue:#3B82F6; --blue-lt:#EFF6FF; --blue-mid:#DBEAFE;
+  --green:#10B981; --green-lt:#ECFDF5; --green-mid:#D1FAE5;
+  --red:#EF4444; --red-lt:#FEF2F2;
+  --amber:#F59E0B; --amber-lt:#FFFBEB;
+  --purple:#8B5CF6;
+  --txt:#0F172A; --txt2:#475569; --txt3:#94A3B8; --txt4:#CBD5E1;
+  --cls0:#EF4444; --cls1:#F59E0B; --cls2:#10B981; --cls3:#3B82F6;
+  --cls0-lt:#FEF2F2; --cls1-lt:#FFFBEB; --cls2-lt:#ECFDF5; --cls3-lt:#EFF6FF;
+  --r:12px; --r-sm:8px; --r-lg:16px;
+  --shadow:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --font-display:'Outfit',sans-serif;
+  --font-body:'Noto Sans KR',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:var(--font-body);color:var(--txt);min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);height:60px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 28px;
+  position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--purple));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 2px 8px rgba(59,130,246,.3)}
+.logo-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-.02em}
+.logo-sub{font-size:12px;color:var(--txt3);font-weight:400;margin-left:2px}
+.topbar-center{display:flex;align-items:center;gap:6px}
+.tech-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  padding:3px 10px;font-family:var(--font-mono);font-size:10px;color:var(--txt2)}
+.tech-chip.blue{background:var(--blue-lt);border-color:var(--blue-mid);color:var(--blue)}
+.tech-chip.green{background:var(--green-lt);border-color:var(--green-mid);color:var(--green)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.api-status{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);
+  font-size:10px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--txt3)}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--txt4)}
+.api-dot.ok{background:var(--green);animation:pulse 1.4s ease-in-out infinite}
+.api-dot.err{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
+.main-wrap{padding:24px 28px;display:grid;grid-template-columns:1fr 380px;
+  grid-template-rows:auto 1fr;gap:20px;max-width:1440px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  box-shadow:var(--shadow);overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 14px;border-bottom:1px solid var(--border)}
+.card-title{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--txt);
+  display:flex;align-items:center;gap:8px}
+.card-title-icon{width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:14px}
+.icon-blue{background:var(--blue-lt)} .icon-green{background:var(--green-lt)} .icon-amber{background:var(--amber-lt)}
+.status-pill{display:flex;align-items:center;gap:5px;font-family:var(--font-display);
+  font-size:11px;font-weight:600;border-radius:20px;padding:3px 10px}
+.pill-green{background:var(--green-lt);color:var(--green);border:1px solid var(--green-mid)}
+.pill-blue{background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue-mid)}
+.pill-red{background:var(--red-lt);color:var(--red);border:1px solid #FECACA}
+.pill-amber{background:var(--amber-lt);color:var(--amber);border:1px solid #FDE68A}
+.pill-gray{background:var(--surface2);color:var(--txt3);border:1px solid var(--border)}
+.upload-zone{position:relative;cursor:pointer;transition:all .2s}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2}
+.upload-inner{background:var(--bg);border:2px dashed var(--border2);border-radius:var(--r);
+  padding:32px 20px;text-align:center;transition:all .2s}
+.upload-zone:hover .upload-inner{border-color:var(--blue);background:var(--blue-lt)}
+.upload-icon{font-size:36px;margin-bottom:10px}
+.upload-txt{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+.upload-sub{font-size:11px;color:var(--txt3)}
+.preview-wrap{position:relative;background:#0F172A;border-radius:var(--r);overflow:hidden;min-height:200px}
+.preview-img{width:100%;display:block;border-radius:var(--r)}
+.preview-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:8px;color:rgba(255,255,255,.3);font-family:var(--font-mono);font-size:11px}
+.scan-line{position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(59,130,246,.8),transparent);
+  animation:scandown 2.5s linear infinite;z-index:3;pointer-events:none;display:none}
+.scan-line.active{display:block}
+@keyframes scandown{0%{top:0;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:100%;opacity:0}}
+.corner{position:absolute;width:16px;height:16px;z-index:4}
+.corner.tl{top:8px;left:8px;border-top:2px solid rgba(59,130,246,.5);border-left:2px solid rgba(59,130,246,.5)}
+.corner.tr{top:8px;right:8px;border-top:2px solid rgba(59,130,246,.5);border-right:2px solid rgba(59,130,246,.5)}
+.corner.bl{bottom:8px;left:8px;border-bottom:2px solid rgba(59,130,246,.5);border-left:2px solid rgba(59,130,246,.5)}
+.corner.br{bottom:8px;right:8px;border-bottom:2px solid rgba(59,130,246,.5);border-right:2px solid rgba(59,130,246,.5)}
+.analyze-btn{width:100%;padding:13px;font-family:var(--font-display);font-size:14px;
+  font-weight:700;border:none;border-radius:var(--r);cursor:pointer;transition:all .2s;
+  background:linear-gradient(135deg,var(--blue),var(--purple));color:white;
+  box-shadow:0 4px 12px rgba(59,130,246,.3);margin-top:12px}
+.analyze-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(59,130,246,.4)}
+.analyze-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.analyze-btn.loading{background:linear-gradient(135deg,#94A3B8,#64748B)}
+.env-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.input-group{display:flex;flex-direction:column;gap:5px}
+.input-label{font-family:var(--font-display);font-size:10px;font-weight:700;
+  color:var(--txt3);text-transform:uppercase;letter-spacing:.06em}
+.input-field{padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);
+  font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--txt);
+  background:var(--surface2);outline:none;transition:border-color .2s}
+.input-field:focus{border-color:var(--blue);background:white}
+.clo-strip{display:flex;align-items:center;gap:8px;padding:10px 20px;
+  background:var(--surface2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.clo-strip-label{font-family:var(--font-mono);font-size:10px;color:var(--txt3);
+  letter-spacing:.08em;margin-right:4px}
+.clo-item{display:flex;align-items:center;gap:5px;font-family:var(--font-display);font-size:11px;font-weight:600}
+.clo-dot{width:8px;height:8px;border-radius:50%}
+.clo-val{font-family:var(--font-mono);font-size:10px;color:var(--txt3)}
+.clo-div{width:1px;height:14px;background:var(--border)}
+.cam-stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border)}
+.cam-stat{padding:14px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:3px}
+.cam-stat:last-child{border-right:none}
+.stat-cls{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:.04em}
+.stat-num{font-family:var(--font-display);font-size:26px;font-weight:800;line-height:1;transition:all .3s}
+.stat-clo{font-family:var(--font-mono);font-size:9px;color:var(--txt3)}
+.pmv-body{padding:20px}
+.pmv-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pmv-label{font-family:var(--font-display);font-size:11px;font-weight:600;
+  color:var(--txt3);letter-spacing:.06em;text-transform:uppercase}
+.pmv-number{font-family:var(--font-display);font-size:64px;font-weight:800;
+  line-height:1;letter-spacing:-.03em;transition:color .4s ease}
+.pmv-sub{font-size:11px;color:var(--txt3);margin-top:4px}
+.pmv-gauge-wrap{margin:14px 0 16px}
+.pmv-gauge-track{position:relative;height:8px;border-radius:4px;
+  background:linear-gradient(to right,#60A5FA,#A5F3C0,#6EE7B7,#FCD34D,#FC8181);overflow:visible}
+.pmv-thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;
+  background:var(--surface);border-radius:50%;border:3px solid var(--txt);
+  box-shadow:0 2px 8px rgba(0,0,0,.2);transition:left .6s cubic-bezier(.34,1.56,.64,1);z-index:2}
+.pmv-gauge-labels{display:flex;justify-content:space-between;margin-top:6px;
+  font-family:var(--font-display);font-size:10px;color:var(--txt3);font-weight:500}
+.params-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.param-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 10px}
+.param-chip-lbl{font-family:var(--font-mono);font-size:8px;color:var(--txt3);letter-spacing:.06em;text-transform:uppercase}
+.param-chip-val{font-family:var(--font-display);font-size:12px;font-weight:700;color:var(--txt);margin-top:1px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.metric-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.metric-card.highlight{background:var(--blue-lt);border-color:var(--blue-mid)}
+.metric-card.highlight-green{background:var(--green-lt);border-color:var(--green-mid)}
+.metric-label{font-family:var(--font-display);font-size:10px;font-weight:600;
+  color:var(--txt3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.metric-value{font-family:var(--font-display);font-size:28px;font-weight:800;line-height:1;transition:all .4s}
+.metric-sub{font-family:var(--font-mono);font-size:9px;color:var(--txt3);margin-top:4px}
+.logic-section{padding:0 20px 16px}
+.section-heading{font-family:var(--font-display);font-size:11px;font-weight:700;
+  color:var(--txt3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.logic-rules{display:flex;flex-direction:column;gap:6px}
+.logic-rule{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface2);
+  font-family:var(--font-display);font-size:12px;transition:all .25s}
+.logic-rule.active-hot{background:#FFF7ED;border-color:#FED7AA}
+.logic-rule.active-cold{background:var(--blue-lt);border-color:var(--blue-mid)}
+.logic-rule.active-ok{background:var(--green-lt);border-color:var(--green-mid)}
+.rule-dot{width:8px;height:8px;border-radius:50%;background:var(--txt4);flex-shrink:0;transition:all .25s}
+.rule-dot.hot{background:var(--amber);box-shadow:0 0 6px rgba(245,158,11,.5)}
+.rule-dot.cold{background:var(--blue);box-shadow:0 0 6px rgba(59,130,246,.5)}
+.rule-dot.ok{background:var(--green);box-shadow:0 0 6px rgba(16,185,129,.5)}
+.rule-cond{color:var(--txt2);flex:1;font-weight:500}
+.rule-arrow{color:var(--txt4);font-size:11px}
+.rule-act{font-weight:700;font-size:11px}
+.hot-txt{color:#D97706} .cold-txt{color:var(--blue)} .ok-txt{color:var(--green)}
+.bottom-row{grid-column:1/3;display:grid;grid-template-columns:1fr 380px;gap:20px}
+.energy-body{padding:20px}
+.energy-compare{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.energy-col{display:flex;flex-direction:column;align-items:center;gap:8px}
+.energy-bar-wrap{width:100%;height:72px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-sm);overflow:hidden;display:flex;align-items:flex-end}
+.energy-bar{width:100%;border-radius:var(--r-sm) var(--r-sm) 0 0;transition:height .9s cubic-bezier(.34,1,.64,1)}
+.bar-base{background:linear-gradient(180deg,#94A3B8,#CBD5E1)}
+.bar-smart{background:linear-gradient(180deg,var(--blue),#93C5FD)}
+.energy-kw{font-family:var(--font-display);font-size:16px;font-weight:800;color:var(--txt)}
+.energy-kw.smart{color:var(--blue)}
+.energy-tag{font-family:var(--font-display);font-size:10px;font-weight:600;color:var(--txt3);text-align:center;line-height:1.4}
+.saving-box{width:100%;background:var(--green-lt);border:2px solid var(--green-mid);
+  border-radius:var(--r);padding:14px 12px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;height:72px}
+.saving-pct{font-family:var(--font-display);font-size:26px;font-weight:800;color:var(--green);line-height:1;transition:all .4s}
+.saving-tag{font-family:var(--font-display);font-size:10px;font-weight:600;color:var(--green)}
+.idf-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.idf-cell{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px}
+.idf-label{font-family:var(--font-display);font-size:9px;font-weight:700;color:var(--txt3);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.idf-val{font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--txt)}
+.idf-sub{font-family:var(--font-mono);font-size:9px;color:var(--txt3);margin-top:2px}
+.log-panel{padding:16px 20px}
+.log-entries{display:flex;flex-direction:column;gap:4px}
+.log-entry{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:var(--r-sm);
+  background:var(--surface2);border-left:3px solid transparent;font-family:var(--font-mono);
+  font-size:10px;color:var(--txt3);line-height:1.5}
+.log-entry.new{background:var(--blue-lt);border-left-color:var(--blue);color:var(--txt)}
+.log-entry.mid{background:#F8FAFC;border-left-color:#93C5FD;color:var(--txt2)}
+.log-ts{font-weight:600;color:var(--txt3);white-space:nowrap;flex-shrink:0}
+.log-entry.new .log-ts{color:var(--blue)}
+.reset-btn{padding:7px 16px;font-family:var(--font-display);font-size:11px;font-weight:700;
+  border:1.5px solid var(--border);border-radius:var(--r-sm);cursor:pointer;
+  background:var(--surface2);color:var(--txt2);transition:all .2s}
+.reset-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-lt)}
+@keyframes flashAnim{0%,100%{opacity:1}40%{opacity:.2}}
+.flash{animation:flashAnim .35s ease}
+@media(max-width:960px){
+  .main-wrap{grid-template-columns:1fr;padding:16px}
+  .bottom-row{grid-column:1;grid-template-columns:1fr}
+  .idf-row{grid-template-columns:1fr 1fr}
+  .cam-stats{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <div class="logo-icon">🏫</div>
+    <div>
+      <div class="logo-text">SmartRoom <span class="logo-sub">PMV 냉방 제어</span></div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <span class="tech-chip blue">YOLOv8 Custom</span>
+    <span class="tech-chip">pythermalcomfort</span>
+    <span class="tech-chip">FastAPI</span>
+    <span class="tech-chip green">ASHRAE 55</span>
+  </div>
+  <div class="topbar-right">
+    <div class="api-status" id="apiStatus">
+      <div class="api-dot" id="apiDot"></div>
+      <span id="apiStatusTxt">서버 연결 중...</span>
+    </div>
+    <button class="reset-btn" onclick="resetAll()">🔄 초기화</button>
+  </div>
+</header>
+
+<div class="main-wrap">
+
+  <div class="card" style="grid-row:1/3">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon icon-blue">📷</div>
+        이미지 업로드 — YOLOv8 의복 감지
+      </div>
+      <span class="status-pill pill-gray" id="camBadge">대기 중</span>
+    </div>
+    <div style="padding:20px 20px 0">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*" onchange="onFileSelect(event)">
+        <div class="upload-inner" id="uploadInner">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-txt">클릭하거나 이미지를 드래그하여 업로드</div>
+          <div class="upload-sub">JPG, PNG, WEBP · 강의실 사진을 업로드하세요</div>
+        </div>
+      </div>
+      <div class="env-inputs">
+        <div class="input-group">
+          <label class="input-label">실내 초기 온도 (°C)</label>
+          <input class="input-field" type="number" id="indoorTemp" value="24" min="20" max="32" step="0.5">
+        </div>
+        <div class="input-group">
+          <label class="input-label">외기 온도 (°C)</label>
+          <input class="input-field" type="number" id="outdoorTemp" value="32" min="25" max="42" step="0.5">
+        </div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyzeImage()" disabled>
+        ▶ &nbsp;분석 실행
+      </button>
+    </div>
+    <div style="padding:16px 20px 0">
+      <div class="preview-wrap" id="previewWrap">
+        <div class="scan-line" id="scanLine"></div>
+        <div class="corner tl"></div><div class="corner tr"></div>
+        <div class="corner bl"></div><div class="corner br"></div>
+        <div class="preview-overlay" id="previewOverlay">
+          <span style="font-size:32px">📷</span>
+          <span>이미지를 업로드하면 감지 결과가 여기에 표시됩니다</span>
+        </div>
+        <img id="previewImg" class="preview-img" style="display:none">
+      </div>
+    </div>
+    <div class="clo-strip" style="margin-top:16px">
+      <span class="clo-strip-label">CLO MAP</span>
+      <div class="clo-item"><div class="clo-dot" style="background:var(--cls0)"></div><span style="color:var(--cls0)">반팔</span><span class="clo-val">0.30</span></div>
+      <div class="clo-div"></div>
+      <div class="clo-item"><div class="clo-dot" style="background:var(--cls1)"></div><span style="color:var(--cls1)">얇은 긴팔</span><span class="clo-val">0.57</span></div>
+      <div class="clo-div"></div>
+      <div class="clo-item"><div class="clo-dot" style="background:var(--cls2)"></div><span style="color:var(--cls2)">니트/맨투맨</span><span class="clo-val">0.74</span></div>
+      <div class="clo-div"></div>
+      <div class="clo-item"><div class="clo-dot" style="background:var(--cls3)"></div><span style="color:var(--cls3)">외투</span><span class="clo-val">0.96</span></div>
+    </div>
+    <div class="cam-stats">
+      <div class="cam-stat">
+        <span class="stat-cls" style="color:var(--cls0)">반팔 CLS 0</span>
+        <span class="stat-num" id="cnt0" style="color:var(--cls0)">0</span>
+        <span class="stat-clo">clo 0.30</span>
+      </div>
+      <div class="cam-stat">
+        <span class="stat-cls" style="color:var(--cls1)">얇은 긴팔 CLS 1</span>
+        <span class="stat-num" id="cnt1" style="color:var(--cls1)">0</span>
+        <span class="stat-clo">clo 0.57</span>
+      </div>
+      <div class="cam-stat">
+        <span class="stat-cls" style="color:var(--cls2)">니트/맨투맨 CLS 2</span>
+        <span class="stat-num" id="cnt2" style="color:var(--cls2)">0</span>
+        <span class="stat-clo">clo 0.74</span>
+      </div>
+      <div class="cam-stat">
+        <span class="stat-cls" style="color:var(--cls3)">외투 CLS 3</span>
+        <span class="stat-num" id="cnt3" style="color:var(--cls3)">0</span>
+        <span class="stat-clo">clo 0.96</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon icon-amber">🌡️</div>
+        PMV 온열 쾌적도
+      </div>
+      <span class="status-pill pill-gray" id="comfortBadge">—</span>
+    </div>
+    <div class="pmv-body">
+      <div class="pmv-label-row">
+        <div class="pmv-label">PMV 지수 (pmv_ppd_iso)</div>
+      </div>
+      <div class="pmv-number" id="pmvDisplay" style="color:var(--txt3)">—</div>
+      <div class="pmv-sub">ISO 7730 · 쾌적 범위 −0.5 ~ +0.5</div>
+      <div class="pmv-gauge-wrap">
+        <div class="pmv-gauge-track">
+          <div class="pmv-thumb" id="pmvThumb" style="left:50%"></div>
+        </div>
+        <div class="pmv-gauge-labels">
+          <span>추움 −3</span><span>−0.5</span><span>쾌적</span><span>+0.5</span><span>더움 +3</span>
+        </div>
+      </div>
+      <div class="params-row">
+        <div class="param-chip"><div class="param-chip-lbl">MET</div><div class="param-chip-val">1.1</div></div>
+        <div class="param-chip"><div class="param-chip-lbl">RH</div><div class="param-chip-val">50%</div></div>
+        <div class="param-chip"><div class="param-chip-lbl">v</div><div class="param-chip-val">0.1 m/s</div></div>
+        <div class="param-chip"><div class="param-chip-lbl">tr = tdb</div><div class="param-chip-val" id="trDisp">—</div></div>
+        <div class="param-chip"><div class="param-chip-lbl">avg Clo</div><div class="param-chip-val" id="cloDispTop">—</div></div>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card" id="acCard">
+          <div class="metric-label">에어컨 설정 온도</div>
+          <div class="metric-value" id="acTempDisp" style="color:var(--txt3)">—</div>
+          <div class="metric-sub">범위 22 ~ 28°C</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">평균 착의량</div>
+          <div class="metric-value" id="cloDisp" style="color:var(--txt3)">—</div>
+          <div class="metric-sub">∑Clo ÷ 감지 인원</div>
+        </div>
+        <div class="metric-card highlight-green">
+          <div class="metric-label">냉방 절감률</div>
+          <div class="metric-value" id="savingDisp" style="color:var(--txt3)">—</div>
+          <div class="metric-sub">vs 24°C 과냉방 기준</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">감지 인원</div>
+          <div class="metric-value" id="occupantCount" style="color:var(--txt3)">—</div>
+          <div class="metric-sub">YOLO 감지</div>
+        </div>
+      </div>
+    </div>
+    <div class="logic-section">
+      <div class="section-heading">제어 로직 — ASHRAE 55</div>
+      <div class="logic-rules">
+        <div class="logic-rule" id="ruleHot">
+          <div class="rule-dot" id="ind0"></div>
+          <span class="rule-cond">PMV &gt; +0.5 (더움)</span>
+          <span class="rule-arrow">→</span>
+          <span class="rule-act hot-txt">설정온도 −1°C (최저 22°C)</span>
+        </div>
+        <div class="logic-rule" id="ruleCold">
+          <div class="rule-dot" id="ind1"></div>
+          <span class="rule-cond">PMV &lt; −0.5 (추움)</span>
+          <span class="rule-arrow">→</span>
+          <span class="rule-act cold-txt">설정온도 +1°C (최고 28°C)</span>
+        </div>
+        <div class="logic-rule" id="ruleOk">
+          <div class="rule-dot" id="ind2"></div>
+          <span class="rule-cond">−0.5 ≤ PMV ≤ +0.5</span>
+          <span class="rule-arrow">→</span>
+          <span class="rule-act ok-txt">현재 온도 유지</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon icon-green">⚡</div>
+          냉방 에너지 비교 — EnergyPlus 근사 모델
+        </div>
+        <span class="status-pill pill-green" id="energyBadge">● 계산 중</span>
+      </div>
+      <div class="energy-body">
+        <div class="energy-compare">
+          <div class="energy-col">
+            <span class="energy-kw" id="baseEval">0.00</span>
+            <div class="energy-bar-wrap"><div class="energy-bar bar-base" id="baseBar" style="height:0%"></div></div>
+            <span class="energy-tag">베이스라인<br>24°C 고정</span>
+          </div>
+          <div class="energy-col">
+            <span class="energy-kw smart" id="smartEval">0.00</span>
+            <div class="energy-bar-wrap"><div class="energy-bar bar-smart" id="smartBar" style="height:0%"></div></div>
+            <span class="energy-tag">PMV 제어<br>(스마트)</span>
+          </div>
+          <div class="energy-col">
+            <div class="saving-box">
+              <div class="saving-pct" id="savingNum">—</div>
+              <div class="saving-tag">절감률</div>
+            </div>
+            <span class="energy-tag">누적 절감<br>
+              <span id="totalSavKwh" style="color:var(--green);font-weight:700">—</span>
+            </span>
+          </div>
+        </div>
+        <div class="idf-row">
+          <div class="idf-cell">
+            <div class="idf-label">분석 횟수</div>
+            <div class="idf-val" id="frameCount">0</div>
+            <div class="idf-sub">이미지 누적</div>
+          </div>
+          <div class="idf-cell">
+            <div class="idf-label">외기 온도</div>
+            <div class="idf-val" id="outdoorDisp" style="color:var(--amber)">—</div>
+            <div class="idf-sub">입력값 기준</div>
+          </div>
+          <div class="idf-cell">
+            <div class="idf-label">베이스라인</div>
+            <div class="idf-val" style="color:var(--txt3)">24.0°C</div>
+            <div class="idf-sub">과냉방 고정</div>
+          </div>
+          <div class="idf-cell">
+            <div class="idf-label">총 절감량</div>
+            <div class="idf-val" id="totalSavIdf" style="color:var(--green)">—</div>
+            <div class="idf-sub">kWh 누적</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <div class="card-title-icon icon-blue">📋</div>
+          제어 로그
+        </div>
+      </div>
+      <div class="log-panel">
+        <div class="log-entries" id="logEntries">
+          <div class="log-entry"><span class="log-ts">--:--:--</span>서버 연결 대기 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let selectedFile = null;
+
+async function checkServer() {
+  try {
+    const r = await fetch(`${API}/state`, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      document.getElementById('apiDot').className = 'api-dot ok';
+      document.getElementById('apiStatusTxt').textContent = '서버 연결됨';
+      const data = await r.json();
+      updateEnergyUI(data);
+      updateLogUI(data.logs || []);
+    }
+  } catch {
+    document.getElementById('apiDot').className = 'api-dot err';
+    document.getElementById('apiStatusTxt').textContent = '서버 오프라인';
+  }
+}
+
+function onFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = document.getElementById('previewImg');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('previewOverlay').style.display = 'none';
+    document.getElementById('uploadInner').querySelector('.upload-txt').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('analyzeBtn').disabled = false;
+  document.getElementById('camBadge').textContent = '이미지 준비됨';
+  document.getElementById('camBadge').className = 'status-pill pill-amber';
+}
+
+async function analyzeImage() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳  분석 중...';
+  btn.classList.add('loading');
+  document.getElementById('camBadge').textContent = '● DETECTING';
+  document.getElementById('camBadge').className = 'status-pill pill-blue';
+  document.getElementById('scanLine').classList.add('active');
+  const indoorTemp  = parseFloat(document.getElementById('indoorTemp').value);
+  const outdoorTemp = parseFloat(document.getElementById('outdoorTemp').value);
+  try {
+    const form = new FormData();
+    form.append('file', selectedFile);
+    form.append('indoor_temp', indoorTemp);
+    form.append('outdoor_temp', outdoorTemp);
+    const res = await fetch(`${API}/analyze`, { method: 'POST', body: form });
+    if (!res.ok) throw new Error(`서버 오류: ${res.status}`);
+    const data = await res.json();
+    updateUI(data);
+  } catch (err) {
+    alert(`분석 실패: ${err.message}\n\n서버가 실행 중인지 확인하세요.`);
+    document.getElementById('camBadge').textContent = '오류';
+    document.getElementById('camBadge').className = 'status-pill pill-red';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶  분석 실행';
+    btn.classList.remove('loading');
+    document.getElementById('scanLine').classList.remove('active');
+  }
+}
+
+function updateUI(data) {
+  if (data.annotated_b64) {
+    const img = document.getElementById('previewImg');
+    img.src = 'data:image/jpeg;base64,' + data.annotated_b64;
+    img.style.display = 'block';
+    document.getElementById('previewOverlay').style.display = 'none';
+  }
+  const counts = data.cls_counts || {};
+  [0,1,2,3].forEach(c => {
+    const el = document.getElementById('cnt' + c);
+    el.textContent = counts[c] ?? 0;
+    flashEl(el);
+  });
+  const pmv = data.pmv ?? 0;
+  const pmvEl = document.getElementById('pmvDisplay');
+  pmvEl.textContent = (pmv >= 0 ? '+' : '') + pmv.toFixed(3);
+  flashEl(pmvEl);
+  if      (pmv > 0.5)  { pmvEl.style.color='#EF4444'; }
+  else if (pmv < -0.5) { pmvEl.style.color='#3B82F6'; }
+  else                  { pmvEl.style.color='#10B981'; }
+  const thumbPct = ((pmv + 3) / 6 * 90 + 5);
+  document.getElementById('pmvThumb').style.left = thumbPct.toFixed(1) + '%';
+  const cb = document.getElementById('comfortBadge');
+  if      (pmv > 0.5)  { cb.textContent='● 더움'; cb.className='status-pill pill-red'; }
+  else if (pmv < -0.5) { cb.textContent='● 추움'; cb.className='status-pill pill-blue'; }
+  else                  { cb.textContent='● 쾌적'; cb.className='status-pill pill-green'; }
+  document.getElementById('camBadge').textContent = '● 감지 완료';
+  document.getElementById('camBadge').className = 'status-pill pill-green';
+  const ac = data.ac_temp ?? 24;
+  document.getElementById('trDisp').textContent = ac.toFixed(1) + '°C';
+  document.getElementById('cloDispTop').textContent = (data.avg_clo ?? 0).toFixed(3);
+  const acEl = document.getElementById('acTempDisp');
+  acEl.textContent = ac.toFixed(1) + '°C';
+  flashEl(acEl);
+  if      (ac <= 23.5) { acEl.style.color='#EF4444'; setCardBg('acCard','#FEF2F2','#FECACA'); }
+  else if (ac >= 26.5) { acEl.style.color='#3B82F6'; setCardBg('acCard','#EFF6FF','#BFDBFE'); }
+  else                  { acEl.style.color='#10B981'; setCardBg('acCard','#ECFDF5','#A7F3D0'); }
+  document.getElementById('cloDisp').textContent = (data.avg_clo ?? 0).toFixed(3);
+  document.getElementById('cloDisp').style.color = '#0F172A';
+  const saving = data.saving_pct ?? 0;
+  const sc = saving >= 0 ? '#10B981' : '#EF4444';
+  const sp = (saving >= 0 ? '+' : '') + saving.toFixed(1) + '%';
+  document.getElementById('savingDisp').textContent = sp;
+  document.getElementById('savingDisp').style.color = sc;
+  document.getElementById('occupantCount').textContent = (data.total_persons ?? 0) + '명';
+  document.getElementById('occupantCount').style.color = '#0F172A';
+  ['ruleHot','ruleCold','ruleOk'].forEach(id => document.getElementById(id).className = 'logic-rule');
+  ['ind0','ind1','ind2'].forEach(id => document.getElementById(id).className = 'rule-dot');
+  if (pmv > 0.5) {
+    document.getElementById('ruleHot').className = 'logic-rule active-hot';
+    document.getElementById('ind0').className = 'rule-dot hot';
+  } else if (pmv < -0.5) {
+    document.getElementById('ruleCold').className = 'logic-rule active-cold';
+    document.getElementById('ind1').className = 'rule-dot cold';
+  } else {
+    document.getElementById('ruleOk').className = 'logic-rule active-ok';
+    document.getElementById('ind2').className = 'rule-dot ok';
+  }
+  updateEnergyUI(data);
+  updateLogUI(data.logs || []);
+  document.getElementById('outdoorDisp').textContent = (data.outdoor_temp ?? 32).toFixed(1) + '°C';
+  document.getElementById('frameCount').textContent = data.frame ?? 0;
+}
+
+function updateEnergyUI(data) {
+  const be = data.base_energy ?? 0;
+  const se = data.smart_energy ?? 0;
+  const maxE = Math.max(be, se, 0.01);
+  const saving = data.saving_pct ?? 0;
+  const savKwh = data.saving_kwh ?? (be - se);
+  const sc = saving >= 0 ? '#10B981' : '#EF4444';
+  document.getElementById('baseEval').textContent  = be.toFixed(2);
+  document.getElementById('smartEval').textContent = se.toFixed(2);
+  document.getElementById('baseBar').style.height  = (be/maxE*100).toFixed(1) + '%';
+  document.getElementById('smartBar').style.height = (se/maxE*100).toFixed(1) + '%';
+  const sp = (saving >= 0 ? '+' : '') + saving.toFixed(1) + '%';
+  document.getElementById('savingNum').textContent = sp;
+  document.getElementById('savingNum').style.color = sc;
+  document.getElementById('savingDisp').textContent = sp;
+  document.getElementById('savingDisp').style.color = sc;
+  const skw = (savKwh >= 0 ? '+' : '') + savKwh.toFixed(2) + ' kWh';
+  document.getElementById('totalSavKwh').textContent = skw;
+  document.getElementById('totalSavKwh').style.color = sc;
+  document.getElementById('totalSavIdf').textContent = savKwh.toFixed(2) + ' kWh';
+  document.getElementById('totalSavIdf').style.color = sc;
+}
+
+function updateLogUI(logs) {
+  const el = document.getElementById('logEntries');
+  if (!logs.length) return;
+  el.innerHTML = logs.map((l, i) =>
+    `<div class="log-entry ${i===0?'new':i===1?'mid':''}">
+      <span class="log-ts">${l.slice(1,9)}</span>${l.slice(11)}
+    </div>`
+  ).join('');
+}
+
+function setCardBg(id, bg, bd) {
+  const el = document.getElementById(id);
+  el.style.background = bg;
+  el.style.borderColor = bd;
+}
+
+function flashEl(el) {
+  el.classList.remove('flash');
+  void el.offsetWidth;
+  el.classList.add('flash');
+}
+
+async function resetAll() {
+  if (!confirm('에너지 누적 데이터를 초기화할까요?')) return;
+  try {
+    await fetch(`${API}/reset`, { method:'POST' });
+    updateEnergyUI({ base_energy:0, smart_energy:0, saving_pct:0, saving_kwh:0 });
+    document.getElementById('logEntries').innerHTML =
+      '<div class="log-entry"><span class="log-ts">--:--:--</span>초기화 완료</div>';
+    document.getElementById('frameCount').textContent = '0';
+  } catch { alert('서버 연결 필요'); }
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); });
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file?.type.startsWith('image/')) {
+    document.getElementById('fileInput').files = e.dataTransfer.files;
+    onFileSelect({ target: { files: e.dataTransfer.files } });
+  }
+});
+
+checkServer();
+setInterval(checkServer, 10000);
+</script>
+</body>
+</html>
